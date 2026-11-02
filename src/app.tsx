@@ -38,5 +38,11 @@ export function createApp(config: RigConfig = loadConfig()) {
     );
   });
 
+  // The same Night the page renders (ADR 0001): rows as readNight sorted them, nulls kept.
+  app.get('/api/digest/:night', (c) => {
+    const n = readNight(config.runsDir, c.req.param('night'));
+    return n ? c.json(n) : c.json({ error: 'no such night' }, 404);
+  });
+
   return app;
 }
