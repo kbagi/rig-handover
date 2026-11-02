@@ -51,15 +51,20 @@ function parseLine(raw: string): { line: RunLine; t: number } | null {
   };
 }
 
-export const readNight: ReadNight = (runsDir, night) => {
+// The night's file as text; null for a night that isn't YYYY-MM-DD or has no file.
+function readNightText(runsDir: string, night: string): string | null {
   if (!NIGHT.test(night)) return null;
-  let text: string;
   try {
-    text = readFileSync(join(runsDir, `${night}.jsonl`), 'utf8');
+    return readFileSync(join(runsDir, `${night}.jsonl`), 'utf8');
   } catch (e) {
     if (e instanceof Error && 'code' in e && e.code === 'ENOENT') return null;
     throw e;
   }
+}
+
+export const readNight: ReadNight = (runsDir, night) => {
+  const text = readNightText(runsDir, night);
+  if (text === null) return null;
 
   const timed: { line: RunLine; t: number }[] = [];
   let badLines = 0;
@@ -99,3 +104,19 @@ export const readNight: ReadNight = (runsDir, night) => {
   const rows = [...byJob.values()].sort((a, b) => (a.job < b.job ? -1 : a.job > b.job ? 1 : 0));
   return { night, rows, badLines };
 };
+
+// Log lines by status, for the board's links (plan § 2c). Not jobs: a job that retried twice and
+// then went ok is two retry lines and one ok line. A bad line is in none of the three.
+export type StatusCounts = Record<RunStatus, number>;
+
+export function countNight(runsDir: string, night: string): StatusCounts | null {
+  const text = readNightText(runsDir, night);
+  if (text === null) return null;
+  const counts: StatusCounts = { ok: 0, retry: 0, fail: 0 };
+  for (const raw of text.split('\n')) {
+    if (raw.trim() === '') continue;
+    const parsed = parseLine(raw);
+    if (parsed) counts[parsed.line.status]++;
+  }
+  return counts;
+}
