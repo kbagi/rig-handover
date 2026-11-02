@@ -28,7 +28,29 @@ Read first: `docs/vision.md`, `docs/styleguide.md`. Decisions: `docs/adr/`.
    ```
 
 5. An issue is closed only when its "Done when" holds. If it can't hold yet, leave it open and
-   say what it waits on.
+   say what it waits on. A step that waits on someone outside (a reviewer) holds only once they
+   have looked: a sent link is not a review.
+
+## What every issue carries
+
+Decided by the human who reviewed the morning-digest split (2026-11-02). Every issue from a plan
+is labelled `plan:<plan name>` and its body has, in this order:
+
+```md
+Source: plan.md § <n>
+
+## Scope
+<what to do, in the plan's words; what is not this issue's>
+
+## Done when
+<the plan's checkable condition>
+
+## Blocked by
+<#n, or —>
+
+## Suggested worker
+<strongest model for logic, a cheaper one for views and tests>
+```
 
 ## Skills
 
