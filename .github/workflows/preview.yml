@@ -1,0 +1,55 @@
+# Plan morning-digest § 3–4, ADR 0003. Runs rig, saves one page as one HTML file and puts it on
+# GitHub Pages, so the reviewer reads a copy, not the lane. The file is never committed: it only
+# exists as this run's Pages artifact. The marker comes from the repo variable LANE_MARKER; delete
+# the variable and run this again to upload the same page over the same link without it (§ 4).
+name: preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      night:
+        description: Night to preview (YYYY-MM-DD)
+        default: '2026-10-28'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Save the page
+        env:
+          LANE_MARKER: ${{ vars.LANE_MARKER }}
+          NIGHT: ${{ inputs.night }}
+        run: |
+          pnpm start &
+          for i in $(seq 1 30); do curl -sf localhost:8787/health > /dev/null && break; sleep 1; done
+          mkdir -p _site
+          curl -sf "localhost:8787/digest/$NIGHT" -o _site/index.html
+          echo "banner: $(grep -o 'class="marker">[^<]*' _site/index.html | cut -d'>' -f2)"
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          retention-days: 1
+      - id: deploy
+        uses: actions/deploy-pages@v5
